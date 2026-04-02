@@ -14,6 +14,7 @@ A full-stack product price monitoring system for luxury goods across 3 marketpla
 - Python 3.13
 - pip or conda
 - Node.js 16+ (for frontend)
+- Built and tested on Windows
 
 ### Quick Start (Windows)
 
