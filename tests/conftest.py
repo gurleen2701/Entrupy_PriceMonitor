@@ -1,7 +1,7 @@
 import pytest
 import asyncio
 import hashlib
-from httpx import AsyncClient
+from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.pool import StaticPool
 from app.main import app
@@ -24,9 +24,7 @@ async def test_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     
-    SessionLocal = pytest.fixtures.SessionLocal
-    SessionLocal = pytest.fixtures.SessionLocal
-    
+    # Override the get_db dependency
     async def override_get_db():
         async with AsyncSession(engine) as session:
             yield session
@@ -41,15 +39,15 @@ async def test_db():
     await engine.dispose()
 
 @pytest.fixture
-async def client(test_db):
+def client(test_db):
     """Create test client"""
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        yield ac
+    with TestClient(app) as client:
+        yield client
 
 @pytest.fixture
 async def api_key(test_db):
     """Create test API key"""
-    async with AsyncSession(engine=test_db) as session:
+    async with AsyncSession(test_db) as session:
         # Create test key
         test_key = "test_api_key_12345"
         key_hash = hashlib.sha256(test_key.encode()).hexdigest()

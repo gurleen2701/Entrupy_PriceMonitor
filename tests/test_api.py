@@ -1,31 +1,28 @@
 import pytest
 import json
 import hashlib
-from httpx import AsyncClient
+from fastapi.testclient import TestClient
 from sqlalchemy import select
 from app.models.schemas import Product, PriceHistory, Event
 from datetime import datetime
 
-@pytest.mark.asyncio
-async def test_api_key_missing(client):
+def test_api_key_missing(client):
     """Test that missing API key returns 401"""
-    response = await client.get("/api/products")
+    response = client.get("/api/products")
     assert response.status_code == 401
     assert "API-Key" in response.text or "api_key" in response.text.lower()
 
-@pytest.mark.asyncio
-async def test_api_key_invalid(client):
+def test_api_key_invalid(client):
     """Test that invalid API key returns 401"""
-    response = await client.get(
+    response = client.get(
         "/api/products",
         headers={"X-API-Key": "invalid_key"}
     )
     assert response.status_code == 401
 
-@pytest.mark.asyncio
-async def test_api_key_valid(client, api_key):
+def test_api_key_valid(client, api_key):
     """Test that valid API key allows access"""
-    response = await client.get(
+    response = client.get(
         "/api/products",
         headers={"X-API-Key": api_key}
     )
