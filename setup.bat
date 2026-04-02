@@ -9,7 +9,7 @@ echo.
 REM Backend Setup
 echo 📦 Setting up backend...
 python -m venv venv
-call venv\Scripts\activate.bat
+call venv\Scripts\activate
 
 echo Installing dependencies...
 pip install -r requirements.txt
@@ -34,7 +34,7 @@ echo.
 echo 🎯 To run the application:
 echo.
 echo Terminal 1 (Backend):
-echo   venv\Scripts\activate.bat
+echo   venv\Scripts\activate
 echo   uvicorn app.main:app --reload --port 8000
 echo.
 echo Terminal 2 (Frontend):
