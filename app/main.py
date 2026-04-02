@@ -38,6 +38,12 @@ app.include_router(products.router)
 app.include_router(analytics.router)
 app.include_router(events.router)
 
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy"}
+
 # Error handlers
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):

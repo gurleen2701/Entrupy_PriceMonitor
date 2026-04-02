@@ -8,7 +8,7 @@ from app.models.pydantic_schemas import (
     EventResponse, WebhookSubscriptionCreate, WebhookSubscriptionResponse, PaginatedResponse
 )
 from app.api.auth import verify_api_key
-from typing import Optional
+from typing import Optional, List
 
 router = APIRouter(prefix="/api", tags=["events"])
 
@@ -60,6 +60,18 @@ async def list_events(
         total=total,
         items=[EventResponse.model_validate(e) for e in events]
     )
+
+@router.get("/webhooks", response_model=List[WebhookSubscriptionResponse])
+async def list_webhooks(
+    db: AsyncSession = Depends(get_db),
+    api_key: ApiKey = Depends(verify_api_key)
+):
+    """List all webhook subscriptions"""
+    
+    result = await db.execute(select(WebhookSubscription))
+    webhooks = result.scalars().all()
+    
+    return [WebhookSubscriptionResponse.model_validate(w) for w in webhooks]
 
 @router.post("/webhooks", response_model=WebhookSubscriptionResponse, status_code=status.HTTP_201_CREATED)
 async def create_webhook(

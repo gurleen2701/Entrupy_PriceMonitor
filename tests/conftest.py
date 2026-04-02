@@ -12,31 +12,39 @@ from app.models.schemas import ApiKey, Source
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
 @pytest.fixture
-async def test_db():
+def test_db():
     """Create test database and tables"""
-    engine = create_async_engine(
-        TEST_DATABASE_URL,
-        connect_args={"timeout": 30},
-        poolclass=StaticPool,
-        echo=False,
-    )
+    async def setup_db():
+        engine = create_async_engine(
+            TEST_DATABASE_URL,
+            connect_args={"timeout": 30},
+            poolclass=StaticPool,
+            echo=False,
+        )
+        
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        
+        # Override the get_db dependency
+        async def override_get_db():
+            async with AsyncSession(engine) as session:
+                yield session
+        
+        app.dependency_overrides[get_db] = override_get_db
+        
+        return engine
     
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    
-    # Override the get_db dependency
-    async def override_get_db():
-        async with AsyncSession(engine) as session:
-            yield session
-    
-    app.dependency_overrides[get_db] = override_get_db
+    engine = asyncio.run(setup_db())
     
     yield engine
     
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+    # Cleanup
+    async def cleanup():
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
+        await engine.dispose()
     
-    await engine.dispose()
+    asyncio.run(cleanup())
 
 @pytest.fixture
 def client(test_db):
@@ -45,23 +53,26 @@ def client(test_db):
         yield client
 
 @pytest.fixture
-async def api_key(test_db):
+def api_key(test_db):
     """Create test API key"""
-    async with AsyncSession(test_db) as session:
-        # Create test key
-        test_key = "test_api_key_12345"
-        key_hash = hashlib.sha256(test_key.encode()).hexdigest()
-        
-        api_key = ApiKey(
-            key=test_key,
-            key_hash=key_hash,
-            consumer_name="test_consumer",
-            is_active=True
-        )
-        session.add(api_key)
-        await session.commit()
-        
-        yield test_key
+    async def create_key():
+        async with AsyncSession(test_db) as session:
+            # Create test key
+            test_key = "test_api_key_12345"
+            key_hash = hashlib.sha256(test_key.encode()).hexdigest()
+            
+            api_key = ApiKey(
+                key=test_key,
+                key_hash=key_hash,
+                consumer_name="test_consumer",
+                is_active=True
+            )
+            session.add(api_key)
+            await session.commit()
+            
+            return test_key
+    
+    return asyncio.run(create_key())
 
 @pytest.fixture
 async def setup_sources(test_db):
