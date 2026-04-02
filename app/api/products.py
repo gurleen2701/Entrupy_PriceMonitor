@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, status, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, func
+from sqlalchemy.orm import selectinload
 from app.models.database import get_db
 from app.models.schemas import Product, ApiKey
 from app.models.pydantic_schemas import ProductResponse, RefreshSummary, PaginatedResponse
@@ -77,7 +78,7 @@ async def list_products(
     
     # Get paginated results
     offset = (page - 1) * page_size
-    query = select(Product)
+    query = select(Product).options(selectinload(Product.price_history))
     if filters:
         query = query.where(and_(*filters))
     query = query.offset(offset).limit(page_size)
@@ -101,7 +102,7 @@ async def get_product(
     """Get single product with price history"""
     
     result = await db.execute(
-        select(Product).where(Product.id == product_id)
+        select(Product).options(selectinload(Product.price_history)).where(Product.id == product_id)
     )
     product = result.scalars().first()
     
@@ -110,9 +111,5 @@ async def get_product(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Product not found"
         )
-    
-    # Reload to get price_history relationship
-    from sqlalchemy import inspect
-    inspect(product)
     
     return ProductResponse.model_validate(product)

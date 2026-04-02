@@ -35,14 +35,26 @@ class PriceHistoryResponse(BaseModel):
     class Config:
         from_attributes = True
 
-class ProductResponse(ProductBase):
+class ProductResponse(BaseModel):
     id: int
+    source: str
+    source_product_id: str
+    product_url: str
+    brand: str
+    model: str
+    category: str
+    current_price: float
+    currency: str
+    condition: Optional[str]
+    image_url: Optional[str]
+    metadata: Optional[dict] = Field(default_factory=dict, alias="product_metadata")
     created_at: datetime
     updated_at: datetime
     price_history: Optional[List[PriceHistoryResponse]] = []
 
     class Config:
         from_attributes = True
+        populate_by_name = True
 
 # Event Schemas
 class EventResponse(BaseModel):

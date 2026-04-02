@@ -23,20 +23,17 @@ class Product(Base):
     currency = Column(String, default="USD", nullable=False)
     condition = Column(String, nullable=True)
     image_url = Column(String, nullable=True)
-    product_metadata = Column("metadata", JSON, default={}, nullable=False)
+    product_metadata = Column("product_metadata", JSON, default={}, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
-    def __getattr__(self, name):
-        if name == "metadata":
-            return self.product_metadata
-        raise AttributeError(f"{self.__class__.__name__!r} object has no attribute {name!r}")
+    @property
+    def metadata_dict(self):
+        return self.product_metadata
 
-    def __setattr__(self, name, value):
-        if name == "metadata":
-            object.__setattr__(self, "product_metadata", value)
-        else:
-            super().__setattr__(name, value)
+    @metadata_dict.setter
+    def metadata_dict(self, value):
+        self.product_metadata = value
 
     # Relationships
     price_history = relationship("PriceHistory", back_populates="product", cascade="all, delete-orphan")
